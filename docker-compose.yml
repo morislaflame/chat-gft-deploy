@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: gft_postgres
     environment:
-      POSTGRES_DB: gft
+      POSTGRES_DB: chatgft
       POSTGRES_USER: gftuser
       POSTGRES_PASSWORD: gftpass184848
     volumes:
@@ -107,8 +107,8 @@ services:
       
   llm_service:
     build:
-      context: ./llm_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./llm-service.Dockerfile
     container_name: gft_llm_service
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
