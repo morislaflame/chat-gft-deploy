@@ -34,8 +34,8 @@ services:
 
   backend:
     build:
-      context: ./backend-source/chat-gft-back 
-      dockerfile: ../../backend.Dockerfile
+      context: .
+      dockerfile: ./backend.Dockerfile
     container_name: gft_backend
     environment:
       - NODE_ENV=production
@@ -65,8 +65,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend-source/chat-gft-client
-      dockerfile: ../../frontend.Dockerfile
+      context: .
+      dockerfile: ./frontend.Dockerfile
     container_name: gft_frontend
     ports:
       - "3000:80"
@@ -86,7 +86,7 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./ssl:/etc/nginx/ssl
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot  # ДОБАВЬТЕ ЭТУ СТРОКУ
+      - /var/www/certbot:/var/www/certbot
     depends_on:
       - frontend
       - backend
@@ -107,8 +107,8 @@ services:
       
   llm_service:
     build:
-      context: ./llm-service/raketa_llm
-      dockerfile: ../../llm-service.Dockerfile
+      context: .
+      dockerfile: ./llm-service.Dockerfile
     container_name: gft_llm_service
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
