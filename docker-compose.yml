@@ -51,7 +51,7 @@ services:
       - WEBHOOK_URL=${WEBHOOK_URL}
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_ACCESS_KEY=gftuser
       - MINIO_SECRET_KEY=Bobr_Dobriy
       - MINIO_BUCKET=chat-gft
     ports:
