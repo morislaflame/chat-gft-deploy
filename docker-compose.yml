@@ -104,6 +104,23 @@ services:
     command: certonly --webroot --webroot-path=/var/www/certbot --email ghettoco@mail.ru --agree-tos --no-eff-email -d ghettoco.com
     depends_on:
       - nginx
+      
+  llm_service:
+    build:
+      context: ./llm_service
+      dockerfile: Dockerfile
+    container_name: gft_llm_service
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=https://openrouter.ai/api/v1
+      - DATABASE_URL=postgresql://gftuser:gftpass184848@postgres:5432/gft
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    networks:
+      - chat-gft_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
