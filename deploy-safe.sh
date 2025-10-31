@@ -14,21 +14,60 @@ ROLLBACK_ON_FAILURE=true
 # Функция проверки здоровья
 check_health() {
     local service=$1
-    local max_attempts=10
+    local max_attempts=15
     local attempt=1
     
     echo -e "${YELLOW}🔍 Проверяем здоровье сервиса ${service}...${NC}"
     
+    # Определяем имя контейнера в зависимости от сервиса
+    local container_name=""
+    case $service in
+        backend)
+            container_name="gft_backend"
+            health_url="http://localhost:5000/api/health"
+            ;;
+        frontend)
+            container_name="gft_frontend"
+            health_url="http://localhost/"
+            ;;
+        llm_service)
+            container_name="gft_llm_service"
+            health_url="http://localhost:8000/docs"  # Или другой endpoint
+            ;;
+        *)
+            container_name="gft_backend"  # По умолчанию
+            health_url="http://localhost:5000/api/health"
+            ;;
+    esac
+    
     while [ $attempt -le $max_attempts ]; do
-        if curl -f -s --max-time 5 "${HEALTH_CHECK_URL}" > /dev/null 2>&1; then
+        # Проверяем, что контейнер запущен
+        if ! docker ps | grep -q "${container_name}"; then
+            echo -e "${RED}❌ Контейнер ${container_name} остановлен!${NC}"
+            docker logs "${container_name}" --tail 30
+            return 1
+        fi
+        
+        # Проверяем health endpoint через docker exec
+        if docker exec "${container_name}" wget -q --spider "${health_url}" 2>/dev/null || \
+           docker exec "${container_name}" curl -f -s "${health_url}" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ Сервис ${service} здоров!${NC}"
             return 0
+        fi
+        
+        # Проверяем логи на наличие ошибок
+        if docker logs "${container_name}" --tail 10 2>&1 | grep -qi "error\|fatal\|failed"; then
+            echo -e "${YELLOW}⚠️  Обнаружены предупреждения в логах...${NC}"
         fi
         
         echo -e "${YELLOW}⏳ Попытка ${attempt}/${max_attempts}...${NC}"
         sleep 3
         attempt=$((attempt + 1))
     done
+    
+    # Показываем логи при неудаче
+    echo -e "${RED}❌ Сервис ${service} не отвечает! Логи:${NC}"
+    docker logs "${container_name}" --tail 50
     
     echo -e "${RED}❌ Сервис ${service} не отвечает!${NC}"
     return 1
