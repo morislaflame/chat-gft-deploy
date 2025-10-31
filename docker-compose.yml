@@ -6,8 +6,8 @@ services:
     container_name: gft_postgres
     environment:
       POSTGRES_DB: chatgft
-      POSTGRES_USER: gftuser
-      POSTGRES_PASSWORD: gftpass184848
+      POSTGRES_USER: chatgftuser
+      POSTGRES_PASSWORD: chatgftpass184848
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -113,7 +113,7 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=https://openrouter.ai/api/v1
-      - DATABASE_URL=postgresql://gftuser:gftpass184848@postgres:5432/chatgft
+      - DATABASE_URL=postgresql://chatgftuser:chatgftpass184848@postgres:5432/chatgft
     depends_on:
       - postgres
     ports:
