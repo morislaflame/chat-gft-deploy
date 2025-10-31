@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clothing_postgres
+    environment:
+      POSTGRES_DB: clothing
+      POSTGRES_USER: clouser
+      POSTGRES_PASSWORD: clopass184848
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - clothing_network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: clothing_minio
+    environment:
+      MINIO_ROOT_USER: clouser
+      MINIO_ROOT_PASSWORD: Bobr_Dobriy123
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    networks:
+      - clothing_network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend.Dockerfile
+    container_name: clothing_backend
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=clothing
+      - DB_USER=clouser
+      - DB_PASSWORD=clopass184848
+      - SECRET_KEY=${SECRET_KEY}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - WEBHOOK_SECRET_TOKEN=${WEBHOOK_SECRET_TOKEN}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=clouser
+      - MINIO_SECRET_KEY=Bobr_Dobriy123
+      - MINIO_BUCKET=clothing-files
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - clothing_network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend.Dockerfile
+    container_name: clothing_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - clothing_network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: clothing_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot  # ДОБАВЬТЕ ЭТУ СТРОКУ
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - clothing_network
+    restart: unless-stopped
+
+  # Certbot для автоматического получения SSL
+  certbot:
+    image: certbot/certbot
+    container_name: clothing_certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ghettoco@mail.ru --agree-tos --no-eff-email -d ghettoco.com
+    depends_on:
+      - nginx
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  clothing_network:
+    driver: bridge
