@@ -10,7 +10,7 @@ echo -e "${GREEN}�� Настраиваем домен и SSL...${NC}"
 
 # Проверяем параметры
 if [ $# -eq 0 ]; then
-    echo -e "${RED}❌ Использование: ./setup-domain.sh ghettoco.com ghettoco@mail.ru${NC}"
+    echo -e "${RED}❌ Использование: ./setup-domain.sh chatGFT.pro chatGFT@mail.ru${NC}"
     exit 1
 fi
 
@@ -18,7 +18,7 @@ DOMAIN=$1
 EMAIL=$2
 
 if [ -z "$EMAIL" ]; then
-    echo -e "${RED}❌ Использование: ./setup-domain.sh ghettoco.com ghettoco@mail.ru${NC}"
+    echo -e "${RED}❌ Использование: ./setup-domain.sh chatGFT.pro chatGFT@mail.ru${NC}"
     exit 1
 fi
 
@@ -29,14 +29,14 @@ echo -e "${YELLOW}📧 Email: ${EMAIL}${NC}"
 mkdir -p /var/www/certbot
 
 # Обновляем nginx.conf с доменом
-sed -i "s/ghettoco.com/${DOMAIN}/g" nginx.conf
+sed -i "s/chatGFT.pro/${DOMAIN}/g" nginx.conf
 
 # Обновляем docker-compose.yml с доменом и email
-sed -i "s/ghettoco.com/${DOMAIN}/g" docker-compose.yml
-sed -i "s/ghettoco@mail.ru/${EMAIL}/g" docker-compose.yml
+sed -i "s/chatGFT.pro/${DOMAIN}/g" docker-compose.yml
+sed -i "s/chatGFT@mail.ru/${EMAIL}/g" docker-compose.yml
 
 # Обновляем .env с доменом
-sed -i "s/ghettoco.com/${DOMAIN}/g" .env
+sed -i "s/chatGFT.pro/${DOMAIN}/g" .env
 
 echo -e "${YELLOW}🔨 Запускаем контейнеры...${NC}"
 docker-compose up -d nginx

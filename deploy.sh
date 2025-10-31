@@ -6,7 +6,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 Начинаем развертывание Clothing...${NC}"
+echo -e "${GREEN}🚀 Начинаем развертывание ...${NC}"
 
 # Проверяем наличие Docker
 if ! command -v docker &> /dev/null; then
@@ -49,6 +49,6 @@ echo -e "${GREEN}📊 Статус контейнеров:${NC}"
 docker-compose ps
 
 echo -e "${GREEN}✅ Развертывание завершено!${NC}"
-echo -e "${GREEN}🌐 Фронтенд: https://ghettoco.com${NC}"
-echo -e "${GREEN}🔧 API: https://ghettoco.com/api${NC}"
-echo -e "${GREEN}🪣 MinIO Console: https://ghettoco.com/minio-console${NC}"
+echo -e "${GREEN}🌐 Фронтенд: https://chatGFT.pro${NC}"
+echo -e "${GREEN}🔧 API: https://chatGFT.pro/api${NC}"
+echo -e "${GREEN}🪣 MinIO Console: https://chatGFT.pro/minio-console${NC}"

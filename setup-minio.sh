@@ -33,6 +33,6 @@ echo -e "${GREEN}📊 Статус MinIO:${NC}"
 docker-compose ps | grep minio
 
 echo -e "${GREEN}✅ MinIO настроен!${NC}"
-echo -e "${GREEN}🌐 MinIO Console: https://ghettoco.com/minio-console${NC}"
+echo -e "${GREEN}🌐 MinIO Console: https://chatGFT.pro/minio-console${NC}"
 echo -e "${GREEN}🔑 Логин: gftuser / Bobr_Dobriy${NC}"
 echo -e "${GREEN}📁 Bucket: chat-gft${NC}"

@@ -101,7 +101,7 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
       - /var/www/certbot:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email ghettoco@mail.ru --agree-tos --no-eff-email -d ghettoco.com
+    command: certonly --webroot --webroot-path=/var/www/certbot --email chatGFT@mail.ru --agree-tos --no-eff-email -d chatGFT.pro
     depends_on:
       - nginx
       
@@ -113,7 +113,7 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=https://openrouter.ai/api/v1
-      - DATABASE_URL=postgresql://gftuser:gftpass184848@postgres:5432/gft
+      - DATABASE_URL=postgresql://gftuser:gftpass184848@postgres:5432/chatgft
     depends_on:
       - postgres
     ports:
