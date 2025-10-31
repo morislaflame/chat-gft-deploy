@@ -32,10 +32,10 @@ check_health() {
             ;;
         llm_service)
             container_name="gft_llm_service"
-            health_url="http://localhost:8000/docs"  # Или другой endpoint
+            # Для LLM проверяем через логи, так как нет wget/curl в slim образе
             ;;
         *)
-            container_name="gft_backend"  # По умолчанию
+            container_name="gft_backend"
             health_url="http://localhost:5000/api/health"
             ;;
     esac
@@ -44,20 +44,33 @@ check_health() {
         # Проверяем, что контейнер запущен
         if ! docker ps | grep -q "${container_name}"; then
             echo -e "${RED}❌ Контейнер ${container_name} остановлен!${NC}"
-            docker logs "${container_name}" --tail 30
+            docker logs "${container_name}" --tail 30 2>/dev/null || true
             return 1
         fi
         
-        # Проверяем health endpoint через docker exec
-        if docker exec "${container_name}" wget -q --spider "${health_url}" 2>/dev/null || \
-           docker exec "${container_name}" curl -f -s "${health_url}" > /dev/null 2>&1; then
-            echo -e "${GREEN}✅ Сервис ${service} здоров!${NC}"
-            return 0
-        fi
-        
-        # Проверяем логи на наличие ошибок
-        if docker logs "${container_name}" --tail 10 2>&1 | grep -qi "error\|fatal\|failed"; then
-            echo -e "${YELLOW}⚠️  Обнаружены предупреждения в логах...${NC}"
+        # Для LLM service проверяем через логи (нет wget/curl в slim образе)
+        if [ "$service" = "llm_service" ]; then
+            if docker logs "${container_name}" 2>&1 | grep -q "Uvicorn running\|Application startup complete\|started server process"; then
+                # Проверяем, что нет критических ошибок
+                if ! docker logs "${container_name}" --tail 20 2>&1 | grep -qi "error\|fatal\|failed\|exception"; then
+                    echo -e "${GREEN}✅ Сервис ${service} здоров!${NC}"
+                    return 0
+                fi
+            fi
+        else
+            # Для других сервисов проверяем через wget/curl
+            if docker exec "${container_name}" sh -c "command -v wget >/dev/null 2>&1 && wget -q --spider ${health_url} 2>/dev/null || command -v curl >/dev/null 2>&1 && curl -f -s ${health_url} >/dev/null 2>&1" 2>/dev/null; then
+                echo -e "${GREEN}✅ Сервис ${service} здоров!${NC}"
+                return 0
+            fi
+            
+            # Альтернатива: проверка через логи для backend/frontend
+            if docker logs "${container_name}" 2>&1 | grep -q "Server started\|started on port\|listening\|nginx"; then
+                if ! docker logs "${container_name}" --tail 20 2>&1 | grep -qi "error\|fatal\|failed"; then
+                    echo -e "${GREEN}✅ Сервис ${service} здоров!${NC}"
+                    return 0
+                fi
+            fi
         fi
         
         echo -e "${YELLOW}⏳ Попытка ${attempt}/${max_attempts}...${NC}"
@@ -67,26 +80,46 @@ check_health() {
     
     # Показываем логи при неудаче
     echo -e "${RED}❌ Сервис ${service} не отвечает! Логи:${NC}"
-    docker logs "${container_name}" --tail 50
+    docker logs "${container_name}" --tail 50 2>/dev/null || true
     
     echo -e "${RED}❌ Сервис ${service} не отвечает!${NC}"
     return 1
 }
 
-# Функция отката
+# Функция отката (исправлена - останавливает только конкретный сервис)
 rollback() {
-    echo -e "${RED}🔄 Выполняем откат...${NC}"
+    local service=$1
     
-    # Останавливаем новые контейнеры
-    docker compose down
+    echo -e "${RED}🔄 Выполняем откат сервиса ${service}...${NC}"
     
-    # Запускаем предыдущие образы (если есть)
-    if docker images | grep -q "gft_backend.*previous"; then
-        echo -e "${YELLOW}📦 Восстанавливаем предыдущие образы...${NC}"
-        docker compose up -d
+    # Определяем имя контейнера
+    local container_name=""
+    case $service in
+        backend) container_name="gft_backend" ;;
+        frontend) container_name="gft_frontend" ;;
+        llm_service) container_name="gft_llm_service" ;;
+    esac
+    
+    # Останавливаем только конкретный контейнер
+    if [ -n "$container_name" ]; then
+        echo -e "${YELLOW}🛑 Останавливаем контейнер ${container_name}...${NC}"
+        docker compose stop ${service} 2>/dev/null || true
+        docker compose rm -f ${service} 2>/dev/null || true
+        
+        # Восстанавливаем предыдущий образ (если есть)
+        local image_name=$(docker images --format "{{.Repository}}" | grep -E "chat-gft-deploy-${service}|gft_${service}" | head -1)
+        if [ -n "$image_name" ] && docker images | grep -q "${image_name}-previous"; then
+            echo -e "${YELLOW}📦 Восстанавливаем предыдущий образ...${NC}"
+            docker tag "${image_name}-previous" "${image_name}" 2>/dev/null || true
+            docker compose up -d ${service}
+        fi
+    else
+        # Если сервис не указан, останавливаем все (fallback)
+        echo -e "${YELLOW}⚠️  Сервис не указан, останавливаем все...${NC}"
+        docker compose down
     fi
     
-    echo -e "${RED}❌ Откат выполнен. Старая версия запущена.${NC}"
+    echo -e "${RED}❌ Откат выполнен для ${service}.${NC}"
 }
 
 # Функция сохранения текущих образов
@@ -127,7 +160,7 @@ deploy() {
     echo -e "${YELLOW}🚀 Запускаем контейнеры...${NC}"
     if ! docker compose up -d ${service}; then
         echo -e "${RED}❌ Ошибка запуска!${NC}"
-        rollback
+        rollback "${service}"
         exit 1
     fi
     
@@ -139,7 +172,7 @@ deploy() {
     if ! check_health "${service}"; then
         echo -e "${RED}❌ Проверка здоровья не пройдена!${NC}"
         if [ "$ROLLBACK_ON_FAILURE" = true ]; then
-            rollback
+            rollback "${service}"
         fi
         exit 1
     fi
