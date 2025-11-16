@@ -113,7 +113,7 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=https://openrouter.ai/api/v1
-      - DATABASE_URL=postgresql://chatgftuser:chatgftpass184848@postgres:5432/chatgft
+      - DATABASE_URL=postgresql+psycopg_async://chatgftuser:chatgftpass184848@postgres:5432/chatgft
     depends_on:
       - postgres
     ports:
